@@ -18,12 +18,10 @@ app.use(
 );
 
 const Port = process.env.PORT;
-// const url = process.env.URL
+const url = process.env.URL;
 
 mongoose
-  .connect(
-    "mongodb+srv://oviawele20promise:2e0X43EDe0uNO3uG@cluster0.ilfryo9.mongodb.net/"
-  )
+  .connect(url)
   .then(() => {
     console.log("DB connected Succesfully");
     app.listen(Port, () => {
