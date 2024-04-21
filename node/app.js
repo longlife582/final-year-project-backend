@@ -4,9 +4,11 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 const User = require("../node/models/user");
+const tenant = require("../node/models/tenant");
 const bcrypt = require("bcrypt");
 const uuid = require("uuid");
 const jwt = require("jsonwebtoken");
+const users = require("../node/models/user");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const app = express();
@@ -47,13 +49,14 @@ app.post("/signup", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const managerId = uuid.v4();
 
     const newUser = new User({
       FullName,
       email,
       contact,
       password: hashedPassword,
-      managerId: uuid.v4(),
+      managerId,
     });
 
     await newUser.save();
@@ -84,7 +87,7 @@ app.post("/login", async (req, res) => {
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       JWT_SECRET, // Replace with your own secret key
-      { expiresIn: "24h" } // Set token expiration time
+      { expiresIn: "1h" } // Set token expiration time
     );
 
     // Send managerId, name, and JWT token in response
@@ -94,6 +97,60 @@ app.post("/login", async (req, res) => {
       name: user.FullName,
       token: token,
     });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// TENANT PAGE BACKEND
+
+app.post("/tenant", async (req, res) => {
+  const {
+    fullname,
+    sex,
+    email_address,
+    phone_Number,
+    DOB,
+    Address,
+    lease_start,
+    lease_end,
+    nationality,
+    SOR,
+    LGA,
+    rent,
+    managerId,
+  } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ managerId });
+    if (!existingUser) {
+      throw Error("Manager does not exist.");
+    }
+
+    const existingTenant = await tenant.findOne({ email_address });
+    if (existingTenant) {
+      throw Error("This tenant already exists");
+    }
+
+    const Tenant = new tenant({
+      fullname,
+      sex,
+      email_address,
+      phone_Number,
+      DOB,
+      Address,
+      lease_start,
+      lease_end,
+      nationality,
+      SOR,
+      LGA,
+      rent,
+      managerId,
+    });
+
+    await Tenant.save();
+
+    res.status(200).json("Tenant Added");
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
