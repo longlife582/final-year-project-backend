@@ -9,6 +9,7 @@ const bcrypt = require("bcrypt");
 const uuid = require("uuid");
 const jwt = require("jsonwebtoken");
 const users = require("../node/models/user");
+const Staff = require("../node/models/staff");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const app = express();
@@ -151,6 +152,105 @@ app.post("/tenant", async (req, res) => {
     await Tenant.save();
 
     res.status(200).json("Tenant Added");
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/tenants/:managerId", async (req, res) => {
+  const { managerId } = req.params;
+
+  try {
+    const tenants = await tenant.find({ managerId });
+
+    if (!tenants || tenants.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No tenants found for this manager." });
+    }
+
+    res.status(200).json(tenants);
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+// tenants end
+
+app.get("/staff/:managerId", async (req, res) => {
+  const { managerId } = req.params;
+  try {
+    const staff = await Staff.find({ managerId });
+    if (!staff || staff.length === 0) {
+      return res.status(400).json({ message: "No Staff found." });
+    }
+
+    res.status(200).json(staff);
+  } catch (error) {
+    res.status(400).json({ message: "Server down" });
+  }
+});
+
+app.delete("/staff/:_id", async (req, res) => {
+  const { _id } = req.params;
+  try {
+    // Assuming 'Staff' is your mongoose model
+    const deletedStaff = await Staff.findByIdAndDelete(_id);
+
+    if (!deletedStaff) {
+      return res.status(404).json({ message: "Staff not found." });
+    }
+
+    res.status(200).json({ message: "Staff deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting staff:", error);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
+app.post("/staff", async (req, res) => {
+  const {
+    name,
+    email,
+    sex,
+    phoneNumber,
+    DoB,
+    address,
+    position,
+    nationality,
+    SOR,
+    LGA,
+    Education,
+    managerId,
+  } = req.body;
+
+  try {
+    const existingStaff = await Staff.findOne({ email });
+    if (existingStaff) {
+      throw new Error("Staff already exists.");
+    }
+
+    const existingManager = await User.findOne({ managerId }); // Ensure managerId is a valid ObjectId
+    if (!existingManager) {
+      throw new Error("Manager does not exist.");
+    }
+
+    const staff = new Staff({
+      name,
+      email,
+      sex,
+      phoneNumber,
+      DoB,
+      address,
+      position,
+      nationality,
+      SOR,
+      LGA,
+      Education,
+      managerId,
+    });
+
+    await staff.save();
+    res.status(200).json("Staff added successfully.");
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
