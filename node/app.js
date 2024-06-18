@@ -103,6 +103,42 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.post("/tenantlogin", async (req, res) => {
+  const { email_address, phone_Number } = req.body;
+  try {
+    if (!email_address) throw Error("Please provide your email");
+    if (!phone_Number) throw Error("Please provide your password");
+
+    const Tenant = await tenant.findOne({
+      email_address,
+      phone_Number,
+    });
+    if (!Tenant) {
+      throw new Error(
+        "User not found or incorrect phone number. Please contact your manager."
+      );
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { TenantId: Tenant._id, email: Tenant.email },
+      JWT_SECRET, // Replace with your own secret key
+      { expiresIn: "1h" } // Set token expiration time
+    );
+
+    // Send managerId, name, and JWT token in response
+    res.status(200).json({
+      message: "Login successful",
+      _id: Tenant._id,
+      managerId: Tenant.managerId, // Access the managerId from the user object
+      name: Tenant.fullname, // Access the fullname from the user object
+      token: token,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // TENANT PAGE BACKEND
 
 app.post("/tenant", async (req, res) => {
